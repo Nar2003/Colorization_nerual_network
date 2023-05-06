@@ -1,0 +1,93 @@
+#%% import libiaries
+from keras.layers import InputLayer, Conv2D , UpSampling2D
+import keras
+from skimage import color
+import numpy as np
+from PIL import Image
+
+#%% import train images
+# images = [
+#     io.imread(r'D:\Coding\Projects\Mini_projects\Playground\colorizator\data\dog.jpg'),
+#     io.imread(r'D:\Coding\Projects\Mini_projects\Playground\colorizator\data\dog2.jpg'),
+#     io.imread(r'D:\Coding\Projects\Mini_projects\Playground\colorizator\data\family.jpg'),
+#     io.imread(r'D:\Coding\Projects\Mini_projects\Playground\colorizator\data\frukty-korzina-ananas-kivi-iabloko-grusha.jpg'),
+#     io.imread(r'D:\Coding\Projects\Mini_projects\Playground\colorizator\data\hinh-nen-trai-cay-dep-2.jpg'),
+#     io.imread(r'D:\Coding\Projects\Mini_projects\Playground\colorizator\data\humans.jpg'),
+#     io.imread(r'D:\Coding\Projects\Mini_projects\Playground\colorizator\data\maxresdefault_live.jpg'),
+#     io.imread(r'D:\Coding\Projects\Mini_projects\Playground\colorizator\data\maxresdefault.jpg'),
+#     io.imread(r'D:\Coding\Projects\Mini_projects\Playground\colorizator\data\Narezannyj-apelsin-1.jpg')
+# ]
+images = [
+    Image.open(r'D:\Coding\Projects\Mini_projects\Playground\colorizator\data\dog.jpg'),
+    Image.open(r'D:\Coding\Projects\Mini_projects\Playground\colorizator\data\dog2.jpg'),
+    Image.open(r'D:\Coding\Projects\Mini_projects\Playground\colorizator\data\family.jpg'),
+    Image.open(r'D:\Coding\Projects\Mini_projects\Playground\colorizator\data\frukty-korzina-ananas-kivi-iabloko-grusha.jpg'),
+    Image.open(r'D:\Coding\Projects\Mini_projects\Playground\colorizator\data\hinh-nen-trai-cay-dep-2.jpg'),
+    Image.open(r'D:\Coding\Projects\Mini_projects\Playground\colorizator\data\humans.jpg'),
+    Image.open(r'D:\Coding\Projects\Mini_projects\Playground\colorizator\data\maxresdefault_live.jpg'),
+    Image.open(r'D:\Coding\Projects\Mini_projects\Playground\colorizator\data\maxresdefault.jpg'),
+    Image.open(r'D:\Coding\Projects\Mini_projects\Playground\colorizator\data\Narezannyj-apelsin-1.jpg')
+]
+# img.show()
+#%% image process function
+def image2LabTables(image):
+    image = image.resize((1280,720), Image.BILINEAR)
+    image = np.array(image, dtype=float)
+    size = image.shape
+    lab = color.rgb2lab(1.0/255*image)
+    X,y = lab[:,:,0], lab[:,:,1:]
+
+    y = y / 128
+    X = X.reshape(1,size[0],size[1],1)
+    y = y.reshape(1,size[0],size[1],2)
+    return X,y,size
+
+
+# %%
+image2LabTables(images[0])
+
+
+# %% create model
+model = keras.models.Sequential([
+    InputLayer(input_shape=(None,None,1)),
+    Conv2D(128,(3,3),activation = 'relu',padding = 'same'),
+    Conv2D(128,(3,3),activation = 'relu',padding = 'same',strides = 2),
+    Conv2D(256,(3,3),activation = 'relu',padding = 'same'),
+    Conv2D(256,(3,3),activation = 'relu',padding = 'same',strides = 2),
+    Conv2D(512,(3,3),activation = 'relu',padding = 'same'),
+    Conv2D(512,(3,3),activation = 'relu',padding = 'same',strides = 2),
+    Conv2D(1024,(3,3),activation = 'relu',padding = 'same'),
+    Conv2D(1024,(3,3),activation = 'relu',padding = 'same',strides = 2),
+    Conv2D(2048,(3,3),activation = 'relu',padding = 'same'),
+    Conv2D(1024,(3,3),activation = 'relu',padding = 'same'),
+    Conv2D(512,(3,3),activation = 'relu',padding = 'same'),
+    UpSampling2D((2, 2)),
+    Conv2D(256,(3,3),activation = 'relu',padding = 'same'),
+    UpSampling2D((2, 2)),
+    Conv2D(128,(3,3),activation = 'relu',padding = 'same'),
+    UpSampling2D((2, 2)),
+    Conv2D(64,(3,3),activation = 'relu',padding = 'same'),
+    Conv2D(16,(3,3),activation = 'relu',padding = 'same'),
+    Conv2D(2,(3,3),activation = 'tanh',padding = 'same'),
+    UpSampling2D((2, 2))
+])
+
+# %%
+model.compile(optimizer = 'adam',loss='mse')
+
+# %%
+for _ in range(50):
+    for img in images.copy():
+        X,y,size = image2LabTables(img)
+        model.fit(X,y,batch_size = 1)
+# X = []
+# y = []
+# for i in images.copy():
+#     X_elem,y_elem,size = image2LabTables(i)
+#     X.append(X_elem)
+#     y.append(y_elem)
+
+# # %%
+# model.fit(X,y,batch_size=1,epochs =50)
+#%%
+model.save('colorizator_v1.0')
